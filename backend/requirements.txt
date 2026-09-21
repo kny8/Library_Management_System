@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+Flask-CORS
+flask_jwt_extended
+werkzeug
+bcrypt
+Celery
