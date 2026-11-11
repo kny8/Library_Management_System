@@ -1,21 +1,29 @@
 from flask import Flask, request, jsonify, redirect, url_for, flash, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import bcrypt
 import os
-from flask_cors import CORS
+
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt_identity
+)
+
+from app.config import Config
+from app.extensions import db, jwt, cors
+
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 
+
 # Initialize Flask app, SQLAlchemy, and JWTManager
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///librarymanagmentsystem.db'
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your_secret_key_here')
-app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
 
-db = SQLAlchemy(app)  # Create SQLAlchemy instance with app
-jwt = JWTManager(app)
-CORS(app)
+app.config.from_object(Config)
+
+db.init_app(app)
+jwt.init_app(app)
+cors.init_app(app)
+
 
 # Ensure upload folder exists
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
