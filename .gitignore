@@ -64,3 +64,4 @@ pnpm-debug.log*
 
 # Local database
 backend/instance/*.db
+instance/*.db

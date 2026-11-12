@@ -10,6 +10,7 @@ from flask_jwt_extended import (
 
 from app.config import Config
 from app.extensions import db, jwt, cors
+from app.models import User, Section, Book, BookRequest
 
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
@@ -30,105 +31,6 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
-    role = db.Column(db.String(20), nullable=False)
-    permission_granted_at = db.Column(db.DateTime)  # Add permission_granted_at attribute
-
-    def __init__(self, username, password, role):
-        self.username = username
-        self.password = password
-        self.role = role
-        self.permission_granted_at = None  # Initialize permission_granted_at attribute to None
-
-    def has_permission_expired(self):
-        if self.permission_granted_at:
-            # Calculate the current date and time
-            current_time = datetime.utcnow()
-            # Check if 7 days have passed since the permission was granted
-            if current_time > self.permission_granted_at + timedelta(days=7):
-                return True
-        return False
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'username': self.username,
-            'role': self.role,
-            'permission_granted_at': self.permission_granted_at.isoformat() if self.permission_granted_at else None
-        }
-    
-class Section(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(200))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description
-        }
-
-from datetime import datetime
-
-class Book(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    content = db.Column(db.Text)
-    authors = db.Column(db.String(255))
-    section_id = db.Column(db.Integer, db.ForeignKey('section.id'), nullable=False)
-    date_issued = db.Column(db.DateTime)
-    return_date = db.Column(db.DateTime)
-    pdf_file = db.Column(db.String(255))
-    content_text = db.Column(db.Text)
-
-    section = db.relationship('Section', backref=db.backref('books', lazy=True))
-
-    def is_issued(self):
-        return self.date_issued is not None
-
-    def is_overdue(self):
-        if self.return_date and self.return_date < datetime.now():
-            return True
-        return False
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'content': self.content,
-            'authors': self.authors,
-            'section_id': self.section_id,
-            'date_issued': self.date_issued.isoformat() if self.date_issued else None,
-            'return_date': self.return_date.isoformat() if self.return_date else None,
-            'pdf_file': self.pdf_file,
-            'content_text': self.content_text
-        }
-
-class BookRequest(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    status = db.Column(db.String(20), nullable=False, default='Pending')  # Add status attribute with a default value
-
-    user = db.relationship('User', backref=db.backref('book_requests', lazy=True))
-    book = db.relationship('Book', backref=db.backref('book_requests', lazy=True))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'book_id': self.book_id,
-            'status': self.status,
-            'timestamp': self.timestamp.isoformat(),
-            'book_name': self.book.name if self.book else None,
-            'user_name': self.user.username if self.user else None,
-            'days_since_accepted': getattr(self, 'days_since_accepted', None)
-        }
 
 
 with app.app_context():
